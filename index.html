@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local DDoS Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f0f0f0;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Local DDoS Test</h1>
+    <button onclick="startDDoSTest()">Start Test</button>
+    <p id="status">Press "Start Test" to begin.</p>
+
+    <script>
+        let connections = [];
+        const duration = 120000; // 2 minutes in milliseconds
+        let targetIP = '';
+
+        async function getPrivateIP() {
+            try {
+                // Fetch the private IP from your local server
+                const response = await fetch('http://localhost:3000/private-ip');
+                const data = await response.json();
+                targetIP = `ws://${data.ip}:8080`; // WebSocket server IP (local machine's private IP and port 8080)
+                document.getElementById('status').textContent = `Detected private IP: ${data.ip}`;
+            } catch (error) {
+                console.error("Error fetching private IP:", error);
+                document.getElementById('status').textContent = "Could not detect private IP";
+            }
+        }
+
+        async function startDDoSTest() {
+            await getPrivateIP();
+            if (!targetIP) return;
+
+            const confirmStart = confirm("Are you sure you want to test your security by simulating a self-DDoS?");
+            if (!confirmStart) return;
+
+            const endTime = Date.now() + duration;
+            const statusElement = document.getElementById("status");
+
+            statusElement.textContent = "Test in progress...";
+
+            const interval = setInterval(() => {
+                if (Date.now() >= endTime) {
+                    clearInterval(interval);
+                    closeConnections();
+                    statusElement.textContent = `Test completed. Total connections attempted: ${connections.length}`;
+                    return;
+                }
+
+                try {
+                    const ws = new WebSocket(targetIP);
+                    ws.onopen = () => connections.push(ws);
+                    ws.onerror = () => {}; // Ignore errors, they are expected in stress tests
+                } catch (error) {
+                    console.error("Connection error:", error);
+                }
+            }, 50); // Adjust interval to control request frequency
+        }
+
+        function closeConnections() {
+            connections.forEach(ws => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.close();
+                }
+            });
+        }
+    </script>
+</body>
+</html>
