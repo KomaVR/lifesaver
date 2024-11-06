@@ -1,16 +1,15 @@
 {
-  "name": "local-ddos-test",
+  "name": "websocket-ddos-simulation",
   "version": "1.0.0",
-  "description": "A server to detect and send private IP for testing DDoS-like simulation",
+  "description": "WebSocket DDoS simulation for testing purposes in a controlled environment.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
-    "axios": "^1.3.0"
+    "ws": "^8.7.0"
   },
-  "engines": {
-    "node": ">=14.0.0"
-  }
+  "devDependencies": {},
+  "author": "Your Name",
+  "license": "MIT"
 }
