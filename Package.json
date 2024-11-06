@@ -1,0 +1,15 @@
+{
+  "name": "local-ddos-test",
+  "version": "1.0.0",
+  "description": "A server to detect and send private IP for testing DDoS-like simulation",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
