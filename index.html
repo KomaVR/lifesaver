@@ -3,54 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>IP Detection</title>
+    <title>Local DDoS Test</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
             background-color: #f0f0f0;
-            text-align: center;
-            padding: 50px;
-        }
-        #status {
-            font-size: 1.5rem;
-            margin-top: 20px;
-            color: #333;
         }
         button {
             padding: 10px 20px;
-            background-color: #008CBA;
-            color: white;
-            border: none;
+            font-size: 16px;
             cursor: pointer;
-            font-size: 1.1rem;
-        }
-        button:hover {
-            background-color: #007b99;
         }
     </style>
 </head>
 <body>
-
-    <h1>Detect Your IP</h1>
-    <p>Click the button to detect your private or public IP address.</p>
-    <button onclick="getPrivateIP()">Start Detection</button>
-    
-    <div id="status"></div>
+    <h1>Local DDoS Test</h1>
+    <button onclick="startDDoSTest()">Start Test</button>
+    <p id="status">Press "Start Test" to begin.</p>
 
     <script>
-        async function getPrivateIP() {
+        let connections = [];
+        const duration = 120000; // 2 minutes in milliseconds
+        let targetIP = '';
+
+        async function getPublicIP() {
             try {
-                // Fetch the private or public IP from the server
-                const response = await fetch('http://localhost:3000/private-ip');
+                // Fetch the public IP address of the client
+                const response = await fetch('https://api.ipify.org?format=json');
                 const data = await response.json();
-                const ip = data.ip;
-                document.getElementById('status').textContent = `Detected IP: ${ip}`;
+                targetIP = `ws://${data.ip}:8080`; // WebSocket server IP (your VM's IP, and port 8080)
+                document.getElementById('status').textContent = `Detected IP: ${data.ip}`;
             } catch (error) {
                 console.error("Error fetching IP:", error);
                 document.getElementById('status').textContent = "Could not detect IP";
             }
         }
-    </script>
 
+        async function startDDoSTest() {
+            await getPublicIP();
+            if (!targetIP) return;
+
+            const confirmStart = confirm("Are you sure you want to test your security by simulating a self-DDoS?");
+            if (!confirmStart) return;
+
+            const endTime = Date.now() + duration;
+            const statusElement = document.getElementById("status");
+
+            statusElement.textContent = "Test in progress...";
+
+            const interval = setInterval(() => {
+                if (Date.now() >= endTime) {
+                    clearInterval(interval);
+                    closeConnections();
+                    statusElement.textContent = `Test completed. Total connections attempted: ${connections.length}`;
+                    return;
+                }
+
+                try {
+                    const ws = new WebSocket(targetIP);
+                    ws.onopen = () => connections.push(ws);
+                    ws.onerror = () => {}; // Ignore errors, they are expected in stress tests
+                } catch (error) {
+                    console.error("Connection error:", error);
+                }
+            }, 50); // Adjust interval to control request frequency
+        }
+
+        function closeConnections() {
+            connections.forEach(ws => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.close();
+                }
+            });
+        }
+    </script>
 </body>
 </html>
